@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 
+void main() {
+  runApp(MaterialApp(
+    home: TaskManager(),
+  ));
+}
+
 class TaskManager extends StatefulWidget {
   @override
   _TaskManagerState createState() => _TaskManagerState();
@@ -27,10 +33,12 @@ class _TaskManagerState extends State<TaskManager> {
 
   void _toggleTask(int index) {
     setState(() {
+      // Extract the task name without the checkbox state
+      String taskName = _tasks[index].substring(4);
       // Update task completion status directly by checking the checkbox value
       _tasks[index] = _tasks[index].startsWith('[ ]')
-          ? '[X] ${_tasks[index].substring(3)}'
-          : '[ ] ${_tasks[index].substring(4)}';
+          ? '[X] ${taskName.trim()}' // Trim the task name to remove leading spaces
+          : '[ ] ${taskName.trim()}'; // Trim the task name to remove leading spaces
     });
   }
 
@@ -42,7 +50,9 @@ class _TaskManagerState extends State<TaskManager> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Simple Task Manager'),
+        title: Text('My Task Manager'),
+        titleTextStyle: TextStyle(color:Colors.white,fontWeight: FontWeight.bold
+        ),
         backgroundColor: Colors.teal,
       ),
       body: Padding(
@@ -74,7 +84,8 @@ class _TaskManagerState extends State<TaskManager> {
                     },
                     child: ListTile(
                       title: Text(
-                        filteredTasks[index].substring(3), // Display task text without "[ ]"
+                        // Display task text without leading "[ ]"
+                        filteredTasks[index].substring(3),
                         style: TextStyle(
                           fontSize: 18.0,
                           decoration: filteredTasks[index].startsWith('[X]')
@@ -84,9 +95,8 @@ class _TaskManagerState extends State<TaskManager> {
                       ),
                       trailing: Checkbox(
                         // Directly use task state to determine checkbox value
-                        value: filteredTasks[index].startsWith('[ ]'),
-                        // Set initial value to false for initial uncheck
-                        onChanged: (_) => _toggleTask(index), // Simplified callback
+                        value: filteredTasks[index].startsWith('[X]'), // Change here
+                        onChanged: (_) => _toggleTask(index),
                       ),
                       tileColor: Colors.grey[200], // Background color for each task
                     ),
