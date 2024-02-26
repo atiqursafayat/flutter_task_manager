@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(MaterialApp(
-    home: TaskManager(),
-  ));
+  runApp(TaskManagerApp());
+}
+
+class TaskManagerApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: TaskManager(),
+    );
+  }
 }
 
 class TaskManager extends StatefulWidget {
@@ -12,34 +19,38 @@ class TaskManager extends StatefulWidget {
 }
 
 class _TaskManagerState extends State<TaskManager> {
-  List<String> _tasks = []; // Initial empty list
-  String _searchQuery = "";
+  List<String> _tasks = [];
+  String _searchQuery = '';
+  TextEditingController _textController = TextEditingController(); // Controller for text field
+
+  bool _isSearching = false;
 
   void _addTask(String task) {
     if (task.isNotEmpty) {
       setState(() {
-        // Add a new task with initial uncompleted state ("[ ]")
         _tasks.add('[ ] $task');
+        _textController.clear(); // Clear input field after adding task
       });
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please enter a task!'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showSnackBar('Please enter a task!');
     }
   }
 
   void _toggleTask(int index) {
     setState(() {
-      // Extract the task name without the checkbox state
-      String taskName = _tasks[index].substring(4);
-      // Update task completion status directly by checking the checkbox value
-      _tasks[index] = _tasks[index].startsWith('[ ]')
-          ? '[X] ${taskName.trim()}' // Trim the task name to remove leading spaces
-          : '[ ] ${taskName.trim()}'; // Trim the task name to remove leading spaces
+      _tasks[index] = _tasks[index].startsWith('[ ] ')
+          ? '[X] ${_tasks[index].substring(4)}'
+          : '[ ] ${_tasks[index].substring(4)}';
     });
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override
@@ -50,9 +61,34 @@ class _TaskManagerState extends State<TaskManager> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('My Task Manager'),
-        titleTextStyle: TextStyle(color:Colors.white,fontWeight: FontWeight.bold
-        ),
+        title: _isSearching
+            ? TextField(
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Search tasks...',
+                  hintStyle: TextStyle(color: Colors.white),
+                  border: InputBorder.none,
+                ),
+                style: TextStyle(color: Colors.white),
+              )
+            : Text('Task Manager'),
+        actions: [
+          IconButton(
+            icon: Icon(_isSearching ? Icons.close : Icons.search),
+            onPressed: () {
+              setState(() {
+                _isSearching = !_isSearching;
+                if (!_isSearching) {
+                  _searchQuery = '';
+                }
+              });
+            },
+          ),
+        ],
         backgroundColor: Colors.teal,
       ),
       body: Padding(
@@ -60,20 +96,32 @@ class _TaskManagerState extends State<TaskManager> {
         child: Column(
           children: [
             TextField(
+              controller: _textController, // Assign controller to text field
+              onChanged: (value) {
+                setState(() {
+                  // No need to set _newTask here
+                  // _newTask = value;
+                });
+              },
               decoration: InputDecoration(
-                hintText: 'Search tasks...',
+                hintText: 'Enter a new task',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10.0),
                 ),
               ),
-              onChanged: (value) => setState(() => _searchQuery = value),
             ),
+            SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: () => _addTask(_textController.text), // Use text from controller
+              child: Text('Add Task'),
+            ),
+            SizedBox(height: 10),
             Expanded(
               child: ListView.builder(
                 itemCount: filteredTasks.length,
                 itemBuilder: (context, index) {
                   return Dismissible(
-                    key: Key(index.toString()),
+                    key: Key(filteredTasks[index]),
                     direction: DismissDirection.endToStart,
                     onDismissed: (direction) {
                       if (direction == DismissDirection.endToStart) {
@@ -84,21 +132,19 @@ class _TaskManagerState extends State<TaskManager> {
                     },
                     child: ListTile(
                       title: Text(
-                        // Display task text without leading "[ ]"
-                        filteredTasks[index].substring(3),
+                        filteredTasks[index].substring(4),
                         style: TextStyle(
                           fontSize: 18.0,
-                          decoration: filteredTasks[index].startsWith('[X]')
+                          decoration: filteredTasks[index].startsWith('[X] ')
                               ? TextDecoration.lineThrough
                               : TextDecoration.none,
                         ),
                       ),
                       trailing: Checkbox(
-                        // Directly use task state to determine checkbox value
-                        value: filteredTasks[index].startsWith('[X]'), // Change here
+                        value: filteredTasks[index].startsWith('[X] '),
                         onChanged: (_) => _toggleTask(index),
                       ),
-                      tileColor: Colors.grey[200], // Background color for each task
+                      tileColor: Colors.grey[200],
                     ),
                   );
                 },
@@ -106,38 +152,6 @@ class _TaskManagerState extends State<TaskManager> {
             ),
           ],
         ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.add),
-        onPressed: () {
-          final TextEditingController textController = TextEditingController();
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: Text('Add New Task'),
-              content: TextField(
-                controller: textController, // Assign controller to TextField
-                decoration: InputDecoration(
-                  hintText: 'Enter a task',
-                ),
-              ),
-              actions: [
-                TextButton(
-                  child: Text('Cancel'),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                TextButton(
-                  child: Text('Add'),
-                  onPressed: () {
-                    _addTask(textController.text);
-                    Navigator.pop(context);
-                  },
-                ),
-              ],
-            ),
-          );
-        },
       ),
     );
   }
